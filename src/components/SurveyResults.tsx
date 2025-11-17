@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Users, BarChart2 } from 'lucide-react';
+import { ArrowLeft, Users, BarChart2, List, GitCompare } from 'lucide-react';
+import UserResponseDetail from './UserResponseDetail';
+import UserResponseComparison from './UserResponseComparison';
 import { supabase } from '../lib/supabase';
 import { Survey, Question, Response, Answer } from '../types';
 
@@ -18,12 +20,31 @@ interface QuestionStats {
 export default function SurveyResults({ surveyId, onBack }: SurveyResultsProps) {
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [stats, setStats] = useState<QuestionStats[]>([]);
+  const [userResponses, setUserResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalResponses, setTotalResponses] = useState(0);
+  const [viewingResponseId, setViewingResponseId] = useState<string | null>(null);
+  const [comparingUserId, setComparingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadResults();
   }, [surveyId]);
+
+  const handleViewResponse = (responseId: string) => {
+    setViewingResponseId(responseId);
+  };
+
+  const handleCompareResponses = (userId: string) => {
+    setComparingUserId(userId);
+  };
+
+  const handleBackFromDetail = () => {
+    setViewingResponseId(null);
+  };
+
+  const handleBackFromComparison = () => {
+    setComparingUserId(null);
+  };
 
   const loadResults = async () => {
     try {
@@ -41,11 +62,13 @@ export default function SurveyResults({ surveyId, onBack }: SurveyResultsProps) 
       const { data: responsesData, error: responsesError } = await supabase
         .from('responses')
         .select('*')
-        .eq('survey_id', surveyId);
+        .eq('survey_id', surveyId)
+        .order('created_at', { ascending: false });
 
       if (responsesError) throw responsesError;
 
       setTotalResponses(responsesData?.length || 0);
+      setUserResponses(responsesData || []);
 
       const { data: questionsData, error: questionsError } = await supabase
         .from('questions')
@@ -121,6 +144,25 @@ export default function SurveyResults({ surveyId, onBack }: SurveyResultsProps) 
     );
   }
 
+  if (viewingResponseId) {
+    return (
+      <UserResponseDetail 
+        responseId={viewingResponseId}
+        onBack={handleBackFromDetail}
+      />
+    );
+  }
+
+  if (comparingUserId && survey) {
+    return (
+      <UserResponseComparison 
+        userId={comparingUserId}
+        surveyId={survey.id}
+        onBack={handleBackFromComparison}
+      />
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <button
@@ -143,6 +185,49 @@ export default function SurveyResults({ surveyId, onBack }: SurveyResultsProps) 
             <Users size={20} />
             <span className="font-semibold">{totalResponses} 人参与</span>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+        <h2 className="text-xl font-semibold text-slate-800 mb-4">用户回答列表</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">回答时间</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {userResponses.map((response) => (
+                <tr key={response.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {response.user_id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(response.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button 
+                      onClick={() => handleViewResponse(response.id)}
+                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    >
+                      <List className="inline mr-1" size={16} />
+                      查看详情
+                    </button>
+                    <button 
+                      onClick={() => handleCompareResponses(response.user_id)}
+                      className="text-indigo-600 hover:text-indigo-900"
+                    >
+                      <GitCompare className="inline mr-1" size={16} />
+                      对比回答
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
