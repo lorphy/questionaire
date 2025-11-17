@@ -7,7 +7,7 @@ export default defineConfig({
     port:process.env.PORT as unknown as number,
   },
   plugins: [react()],
-  base:process.env.VITE_BASE_PATH || '/questionaire',
+  base:process.env.VITE_BASE_PATH 
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
