@@ -61,7 +61,7 @@ export default function SurveyResults({ surveyId, onBack }: SurveyResultsProps) 
 
       const { data: responsesData, error: responsesError } = await supabase
         .from('responses')
-        .select('*, user:profiles(email)')
+        .select('*')
         .eq('survey_id', surveyId)
         .order('created_at', { ascending: false });
 
@@ -203,7 +203,7 @@ export default function SurveyResults({ surveyId, onBack }: SurveyResultsProps) 
               {userResponses.map((response) => (
                 <tr key={response.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {response.user?.email || response.user_id}
+                    {response.user_id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(response.created_at).toLocaleString()}
